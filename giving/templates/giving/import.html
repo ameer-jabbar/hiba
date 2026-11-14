@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Import PayPal donations</title>
+</head>
+<body>
+    <main>
+        <h1>Import PayPal donations</h1>
+        {% if messages %}
+            <ul>
+                {% for message in messages %}
+                    <li>{{ message }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit">Import CSV</button>
+        </form>
+        <p><a href="{% url 'admin:index' %}">Return to administration</a></p>
+    </main>
+</body>
+</html>
