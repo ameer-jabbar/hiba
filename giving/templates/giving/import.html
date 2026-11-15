@@ -2,24 +2,197 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Import PayPal donations</title>
+    <style>
+        :root {
+            color-scheme: light;
+            font-family: "Segoe UI", Arial, sans-serif;
+            color: #1f2937;
+            background: #f3f6f8;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            min-width: 320px;
+            min-height: 100vh;
+            margin: 0;
+            padding: 48px 20px;
+            background: radial-gradient(ellipse at top, #e8f4f1 0, #f3f6f8 55%);
+        }
+
+        main {
+            width: min(100%, 620px);
+            margin: 0 auto;
+        }
+
+        .eyebrow {
+            margin: 0 0 10px;
+            color: #147d69;
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+        }
+
+        h1 {
+            margin: 0;
+            color: #172b3a;
+            font-size: clamp(1.8rem, 5vw, 2.35rem);
+            letter-spacing: -0.04em;
+        }
+
+        .intro {
+            margin: 12px 0 26px;
+            color: #5d6b78;
+            line-height: 1.6;
+        }
+
+        .import-card {
+            padding: clamp(22px, 5vw, 36px);
+            border: 1px solid #e1e8eb;
+            border-radius: 16px;
+            background: #fff;
+            box-shadow: 0 14px 40px rgb(27 55 71 / 8%);
+        }
+
+        .messages {
+            margin: 0 0 22px;
+            padding: 0;
+            list-style: none;
+        }
+
+        .messages li {
+            padding: 13px 15px;
+            border: 1px solid #a7dfca;
+            border-radius: 9px;
+            background: #effaf5;
+            color: #176345;
+            line-height: 1.5;
+        }
+
+        form p {
+            margin: 0 0 22px;
+        }
+
+        form label {
+            display: block;
+            margin-bottom: 9px;
+            color: #293d4b;
+            font-size: 0.92rem;
+            font-weight: 650;
+        }
+
+        input[type="file"] {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            border: 1px dashed #b8c8ce;
+            border-radius: 9px;
+            background: #f8fafb;
+            color: #52616b;
+            font: inherit;
+        }
+
+        input[type="file"]::file-selector-button {
+            margin-right: 12px;
+            padding: 8px 12px;
+            border: 0;
+            border-radius: 6px;
+            background: #e6f3ef;
+            color: #126b59;
+            font: inherit;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .helptext {
+            display: block;
+            margin-top: 9px;
+            color: #71808a;
+            font-size: 0.85rem;
+            line-height: 1.5;
+        }
+
+        .errorlist {
+            margin: 0 0 10px;
+            padding: 10px 12px;
+            border-radius: 7px;
+            background: #fff1f0;
+            color: #a52e28;
+            font-size: 0.9rem;
+            list-style: none;
+        }
+
+        button[type="submit"] {
+            width: 100%;
+            min-height: 48px;
+            padding: 12px 18px;
+            border: 0;
+            border-radius: 9px;
+            background: #137b68;
+            color: #fff;
+            font: inherit;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background-color 140ms ease, transform 140ms ease;
+        }
+
+        button[type="submit"]:hover {
+            background: #0e6556;
+            transform: translateY(-1px);
+        }
+
+        button[type="submit"]:focus-visible,
+        a:focus-visible,
+        input:focus-visible {
+            outline: 3px solid #8ccfbd;
+            outline-offset: 3px;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-top: 22px;
+            color: #426071;
+            font-size: 0.92rem;
+            text-decoration: none;
+        }
+
+        .back-link:hover {
+            color: #137b68;
+            text-decoration: underline;
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 30px 16px;
+            }
+        }
+    </style>
 </head>
 <body>
     <main>
+        <p class="eyebrow">Donation management</p>
         <h1>Import PayPal donations</h1>
-        {% if messages %}
-            <ul>
-                {% for message in messages %}
-                    <li>{{ message }}</li>
-                {% endfor %}
-            </ul>
-        {% endif %}
-        <form method="post" enctype="multipart/form-data">
-            {% csrf_token %}
-            {{ form.as_p }}
-            <button type="submit">Import CSV</button>
-        </form>
-        <p><a href="{% url 'admin:index' %}">Return to administration</a></p>
+        <p class="intro">Upload a PayPal CSV export to add donation records. Duplicate and unrelated transactions are handled automatically.</p>
+        <section class="import-card" aria-label="Upload PayPal CSV">
+            {% if messages %}
+                <ul class="messages" aria-live="polite">
+                    {% for message in messages %}
+                        <li>{{ message }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                {{ form.as_p }}
+                <button type="submit">Import CSV</button>
+            </form>
+        </section>
+        <a class="back-link" href="{% url 'admin:index' %}">← Return to administration</a>
     </main>
 </body>
 </html>
