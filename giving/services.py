@@ -278,19 +278,10 @@ def import_paypal_csv(content):
         )
         imported += 1
 
-    transaction_file, created = PaypalTransactionsUploadFile.objects.get_or_create(
-        check_sum=checksum,
-        upload_date=datetime.now(),
-        from_date=from_date,
-        to_date=to_date,
-        total_donations=total_donation_amount,
-        total_donations_count=imported,
-        total_donors=len(unique_donors),
-        total_new_donors=new_donor_count,
-    )
-
-    if not created:
-        PaypalTransactionsUploadFile.objects.update(
+    if not PaypalTransactionsUploadFile.objects.filter(check_sum=checksum).exists():
+        PaypalTransactionsUploadFile.objects.create(
+            check_sum=checksum,
+            upload_date=datetime.now(),
             from_date=from_date,
             to_date=to_date,
             total_donations=total_donation_amount,
@@ -298,5 +289,7 @@ def import_paypal_csv(content):
             total_donors=len(unique_donors),
             total_new_donors=new_donor_count,
         )
+    else:
+        log.warning("PayPal transactions upload file with checksum %s already exists", checksum)
 
     return PayPalImportResult(imported=imported, duplicates=duplicates, ignored=ignored)
