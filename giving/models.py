@@ -30,3 +30,20 @@ class DonationTransaction(models.Model):
 
     def __str__(self):
         return f"{self.amount} {self.currency} on {self.transaction_date} ({self.paypal_transaction_id})"
+
+
+class PaypalTransactionsUploadFile(models.Model):
+    check_sum = models.CharField(max_length=100, unique=True)
+    upload_date = models.DateField()
+    from_date = models.DateField()
+    to_date = models.DateField()
+    total_donations = models.DecimalField(max_digits=12, decimal_places=2)
+    total_donations_count = models.IntegerField()
+    total_donors = models.IntegerField()
+    total_new_donors = models.IntegerField()
+
+    class Meta:
+        ordering = ["-upload_date", "-id"]
+
+    def __str__(self):
+        return f"{self.check_sum} uploaded on {self.upload_date}"

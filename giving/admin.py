@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from giving.models import DonationTransaction, Donor
+from giving.models import DonationTransaction, Donor, PaypalTransactionsUploadFile
 
 
 class DonationTransactionInline(admin.TabularInline):
@@ -41,3 +41,17 @@ class DonationTransactionAdmin(admin.ModelAdmin):
         "subscription_id",
     )
     autocomplete_fields = ("donor",)
+
+
+@admin.register(PaypalTransactionsUploadFile)
+class PaypalTransactionsUploadFileAdmin(admin.ModelAdmin):
+    list_display = (
+        "check_sum",
+        "upload_date",
+        "from_date",
+        "to_date",
+        "total_donations",
+        "total_donations_count",
+    )
+    list_filter = ("upload_date",)
+    search_fields = ("check_sum",)

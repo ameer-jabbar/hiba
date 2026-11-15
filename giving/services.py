@@ -1,13 +1,17 @@
 import csv
 import io
+import logging
 from dataclasses import dataclass
 from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
+from hashlib import sha256
 
 from django.core.exceptions import ValidationError
 from django.db import transaction
 
-from giving.models import DonationTransaction, Donor
+from giving.models import DonationTransaction, Donor, PaypalTransactionsUploadFile
+
+log = logging.getLogger(__name__)
 
 
 class PayPalImportError(Exception):
@@ -19,6 +23,20 @@ class PayPalImportResult:
     imported: int
     duplicates: int
     ignored: int
+
+
+@dataclass(frozen=True)
+class DonationEntry:
+    transaction_id: str
+    email: str
+    name: str
+    phone: str
+    date: date
+    amount: Decimal
+    currency: str
+    transaction_type: str
+    subscription_id: str
+    is_recurring: bool
 
 
 FIELD_ALIASES = {
@@ -65,12 +83,12 @@ def _column_map(headers):
     return columns
 
 
-def _value(row, columns, field):
+def _value(row, columns, field) -> str:
     column = columns.get(field)
     return (row.get(column) or "").strip() if column else ""
 
 
-def _is_donation(row, columns):
+def _is_donation(row, columns) -> bool:
     status = _value(row, columns, "status").casefold()
     if status != "completed":
         return False
@@ -85,7 +103,7 @@ def _is_donation(row, columns):
     return transaction_type in DONATION_TYPES
 
 
-def _parse_date(value, row_number):
+def _parse_date(value, row_number) -> date:
     value = value.strip()
     try:
         return date.fromisoformat(value)
@@ -102,7 +120,7 @@ def _parse_date(value, row_number):
     )
 
 
-def _parse_amount(value, row_number):
+def _parse_amount(value, row_number) -> Decimal:
     try:
         amount = Decimal(value.strip().replace(",", "").replace("$", ""))
     except (InvalidOperation, AttributeError):
@@ -188,11 +206,21 @@ def import_paypal_csv(content):
         except UnicodeDecodeError:
             raise PayPalImportError("CSV must be encoded as UTF-8.") from None
 
+    # Calculate the checksum of the content and check if we already have upload file
+    checksum = sha256(content.encode("utf-8")).hexdigest()
+    if PaypalTransactionsUploadFile.objects.filter(check_sum=checksum).exists():
+        log.warning("CSV file has already been uploaded.")
+
     reader = csv.DictReader(io.StringIO(content.lstrip("\ufeff")))
     if not reader.fieldnames:
         raise PayPalImportError("CSV is empty or has no header row.")
     columns = _column_map(reader.fieldnames)
 
+    unique_donors = set()
+    new_donor_count = 0
+    total_donation_amount: Decimal = Decimal("0.0")
+    from_date = None
+    to_date = None
     imported = duplicates = ignored = 0
     seen_transaction_ids = set()
     for row_number, row in enumerate(reader, start=2):
@@ -213,31 +241,62 @@ def import_paypal_csv(content):
             continue
 
         values = _validated_donation(row, columns, row_number)
+        donation_entry = DonationEntry(**values)
+        from_date = (
+            min(from_date, donation_entry.date) if from_date else donation_entry.date
+        )
+        to_date = max(to_date, donation_entry.date) if to_date else donation_entry.date
         values.pop("transaction_id")
         seen_transaction_ids.add(transaction_id)
 
         donor, created = Donor.objects.get_or_create(
-            email__iexact=values["email"],
+            email__iexact=donation_entry.email,
             defaults={
-                "name": values["name"],
-                "email": values["email"],
-                "phone": values["phone"],
+                "name": donation_entry.name,
+                "email": donation_entry.email,
+                "phone": donation_entry.phone,
             },
         )
-        if not created and not donor.phone and values["phone"]:
-            donor.phone = values["phone"]
+        if created:
+            new_donor_count += 1
+        elif not donor.phone and donation_entry.phone:
+            donor.phone = donation_entry.phone
             donor.save(update_fields=["phone"])
+
+        unique_donors.add(str(donor))
+        total_donation_amount += donation_entry.amount
 
         DonationTransaction.objects.create(
             donor=donor,
             paypal_transaction_id=transaction_id,
-            transaction_date=values["date"],
-            amount=values["amount"],
-            currency=values["currency"],
-            transaction_type=values["transaction_type"],
-            is_recurring=values["is_recurring"],
-            subscription_id=values["subscription_id"],
+            transaction_date=donation_entry.date,
+            amount=donation_entry.amount,
+            currency=donation_entry.currency,
+            transaction_type=donation_entry.transaction_type,
+            is_recurring=donation_entry.is_recurring,
+            subscription_id=donation_entry.subscription_id,
         )
         imported += 1
+
+    transaction_file, created = PaypalTransactionsUploadFile.objects.get_or_create(
+        check_sum=checksum,
+        upload_date=datetime.now(),
+        from_date=from_date,
+        to_date=to_date,
+        total_donations=total_donation_amount,
+        total_donations_count=imported,
+        total_donors=len(unique_donors),
+        total_new_donors=new_donor_count,
+    )
+
+    if not created:
+        PaypalTransactionsUploadFile.objects.update(
+            from_date=from_date,
+            to_date=to_date,
+            total_donations=total_donation_amount,
+            total_donations_count=imported,
+            total_donors=len(unique_donors),
+            total_new_donors=new_donor_count,
+        )
 
     return PayPalImportResult(imported=imported, duplicates=duplicates, ignored=ignored)
