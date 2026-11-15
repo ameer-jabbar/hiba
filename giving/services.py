@@ -35,7 +35,7 @@ FIELD_ALIASES = {
     'direction': ('direction',),
 }
 REQUIRED_FIELDS = ('transaction_id', 'date', 'amount', 'currency', 'status', 'type')
-DONATION_TYPES = {'donation', 'recurring donation'}
+DONATION_TYPES = {'subscription payment', 'donation payment'}
 NON_DONATION_MARKERS = ('refund', 'reversal', 'chargeback', 'sent', 'payout', 'withdrawal')
 
 
@@ -73,11 +73,7 @@ def _is_donation(row, columns):
     transaction_type = _value(row, columns, 'type').casefold()
     if any(marker in transaction_type for marker in NON_DONATION_MARKERS):
         return False
-    return (
-        transaction_type in DONATION_TYPES
-        or ('subscription' in transaction_type and 'payment' in transaction_type)
-        or ('recurring' in transaction_type and 'payment' in transaction_type)
-    )
+    return transaction_type in DONATION_TYPES
 
 
 def _parse_date(value, row_number):
@@ -151,7 +147,7 @@ def _validated_donation(row, columns, row_number):
         'currency': currency,
         'transaction_type': transaction_type,
         'subscription_id': subscription_id,
-        'is_recurring': bool(subscription_id) or 'recurring' in transaction_type.casefold() or 'subscription' in transaction_type.casefold(),
+        'is_recurring': bool(subscription_id) or 'subscription' in transaction_type.casefold(),
     }
 
 
