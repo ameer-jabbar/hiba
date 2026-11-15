@@ -6,19 +6,38 @@ from giving.models import DonationTransaction, Donor
 class DonationTransactionInline(admin.TabularInline):
     model = DonationTransaction
     extra = 0
-    fields = ('paypal_transaction_id', 'transaction_date', 'amount', 'currency', 'is_recurring', 'subscription_id')
+    fields = (
+        "paypal_transaction_id",
+        "transaction_date",
+        "amount",
+        "currency",
+        "is_recurring",
+        "subscription_id",
+    )
 
 
 @admin.register(Donor)
 class DonorAdmin(admin.ModelAdmin):
-    list_display = ('name', 'email', 'phone')
-    search_fields = ('name', 'email', 'phone')
+    list_display = ("name", "email", "phone")
+    search_fields = ("name", "email", "phone")
     inlines = (DonationTransactionInline,)
 
 
 @admin.register(DonationTransaction)
 class DonationTransactionAdmin(admin.ModelAdmin):
-    list_display = ('paypal_transaction_id', 'donor', 'transaction_date', 'amount', 'currency', 'is_recurring')
-    list_filter = ('is_recurring', 'currency', 'transaction_date')
-    search_fields = ('paypal_transaction_id', 'donor__name', 'donor__email', 'subscription_id')
-    autocomplete_fields = ('donor',)
+    list_display = (
+        "paypal_transaction_id",
+        "donor",
+        "transaction_date",
+        "amount",
+        "currency",
+        "is_recurring",
+    )
+    list_filter = ("is_recurring", "currency", "transaction_date")
+    search_fields = (
+        "paypal_transaction_id",
+        "donor__name",
+        "donor__email",
+        "subscription_id",
+    )
+    autocomplete_fields = ("donor",)
