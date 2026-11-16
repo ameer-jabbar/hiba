@@ -1,10 +1,15 @@
+import uuid
+
 from django.db import models
 
 
 class Donor(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=200)
     email = models.EmailField(db_index=True)
     phone = models.CharField(max_length=40, blank=True)
+    has_active_recurrent_donation = models.BooleanField(default=False)
+    notes = models.TextField(blank=True)
 
     class Meta:
         ordering = ["name", "email"]

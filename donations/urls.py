@@ -23,4 +23,5 @@ from giving.views import paypal_import
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("imports/paypal/", paypal_import, name="paypal-import"),
+    path("", paypal_import, name="paypal-import"),
 ]

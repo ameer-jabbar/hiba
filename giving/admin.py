@@ -1,6 +1,7 @@
 from django.contrib import admin
 
-from giving.models import DonationTransaction, Donor, PaypalTransactionsUploadFile
+from giving.models import (DonationTransaction, Donor,
+                           PaypalTransactionsUploadFile)
 
 
 class DonationTransactionInline(admin.TabularInline):
@@ -18,7 +19,14 @@ class DonationTransactionInline(admin.TabularInline):
 
 @admin.register(Donor)
 class DonorAdmin(admin.ModelAdmin):
-    list_display = ("name", "email", "phone")
+    list_display = (
+        "id",
+        "name",
+        "email",
+        "phone",
+        "has_active_recurrent_donation",
+        "notes",
+    )
     search_fields = ("name", "email", "phone")
     inlines = (DonationTransactionInline,)
 
