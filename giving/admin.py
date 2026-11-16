@@ -37,6 +37,7 @@ class DonationTransactionAdmin(admin.ModelAdmin):
         "paypal_transaction_id",
         "donor",
         "transaction_date",
+        "donation_type",
         "amount",
         "currency",
         "is_recurring",
@@ -47,6 +48,7 @@ class DonationTransactionAdmin(admin.ModelAdmin):
         "donor__name",
         "donor__email",
         "subscription_id",
+        "donation_type",
     )
     autocomplete_fields = ("donor",)
 

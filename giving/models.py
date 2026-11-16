@@ -29,6 +29,7 @@ class DonationTransaction(models.Model):
     transaction_type = models.CharField(max_length=100)
     is_recurring = models.BooleanField(default=False)
     subscription_id = models.CharField(max_length=100, blank=True)
+    donation_type = models.CharField(max_length=100, blank=True)
 
     class Meta:
         ordering = ["-transaction_date", "-id"]

@@ -9,7 +9,8 @@ from hashlib import sha256
 from django.core.exceptions import ValidationError
 from django.db import transaction
 
-from giving.models import DonationTransaction, Donor, PaypalTransactionsUploadFile
+from giving.models import (DonationTransaction, Donor,
+                           PaypalTransactionsUploadFile)
 
 log = logging.getLogger(__name__)
 
@@ -37,6 +38,7 @@ class DonationEntry:
     transaction_type: str
     subscription_id: str
     is_recurring: bool
+    donation_type: str
 
 
 FIELD_ALIASES = {
@@ -51,6 +53,7 @@ FIELD_ALIASES = {
     "phone": ("contact phone number", "phone number", "phone"),
     "subscription_id": ("subscription id", "subscr id", "subscription_id"),
     "direction": ("direction",),
+    "donation_type": ("item title",),
 }
 REQUIRED_FIELDS = ("transaction_id", "date", "amount", "currency", "status", "type")
 DONATION_TYPES = {"subscription payment", "donation payment"}
@@ -146,6 +149,7 @@ def _validated_donation(row, columns, row_number):
     currency = _value(row, columns, "currency").upper()
     subscription_id = _value(row, columns, "subscription_id")
     transaction_type = _value(row, columns, "type")
+    donation_type = _value(row, columns, "donation_type")
 
     if not transaction_id:
         raise PayPalImportError(f"Row {row_number}: transaction ID is required.")
@@ -194,6 +198,7 @@ def _validated_donation(row, columns, row_number):
         "subscription_id": subscription_id,
         "is_recurring": bool(subscription_id)
         or "subscription" in transaction_type.casefold(),
+        "donation_type": donation_type,
     }
 
 
@@ -275,6 +280,7 @@ def import_paypal_csv(content):
             transaction_type=donation_entry.transaction_type,
             is_recurring=donation_entry.is_recurring,
             subscription_id=donation_entry.subscription_id,
+            donation_type=donation_entry.donation_type,
         )
         imported += 1
 
@@ -290,6 +296,8 @@ def import_paypal_csv(content):
             total_new_donors=new_donor_count,
         )
     else:
-        log.warning("PayPal transactions upload file with checksum %s already exists", checksum)
+        log.warning(
+            "PayPal transactions upload file with checksum %s already exists", checksum
+        )
 
     return PayPalImportResult(imported=imported, duplicates=duplicates, ignored=ignored)
