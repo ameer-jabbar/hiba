@@ -18,10 +18,11 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 
-from giving.views import paypal_import
+from giving.views import donation_report, paypal_import
 
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("imports/paypal/", paypal_import, name="paypal-import"),
+    path("reports/donations/", donation_report, name="donation-report"),
     path("", paypal_import, name="paypal-import"),
 ]

@@ -186,3 +186,70 @@ class PayPalUploadViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Imported 1 donation(s)")
         self.assertEqual(DonationTransaction.objects.count(), 1)
+
+
+class DonationReportViewTests(TestCase):
+    def setUp(self):
+        self.url = reverse("donation-report")
+        staff_user = get_user_model().objects.create_user(
+            username="report-staff", password="password", is_staff=True
+        )
+        self.client.force_login(staff_user)
+        amina = Donor.objects.create(name="Amina Noor", email="amina@example.com")
+        bilal = Donor.objects.create(name="Bilal Khan", email="bilal@example.com")
+        DonationTransaction.objects.create(
+            donor=amina,
+            paypal_transaction_id="REPORT-1",
+            transaction_date="2025-01-15",
+            amount="25.00",
+            currency="USD",
+            transaction_type="Donation",
+        )
+        DonationTransaction.objects.create(
+            donor=bilal,
+            paypal_transaction_id="REPORT-2",
+            transaction_date="2025-02-15",
+            amount="75.00",
+            currency="USD",
+            transaction_type="Donation",
+        )
+
+    def test_staff_can_filter_report_by_date_donor_and_amount(self):
+        response = self.client.get(
+            self.url,
+            {
+                "start_date": "2025-01-01",
+                "end_date": "2025-01-31",
+                "donor_name": "amina",
+                "minimum_amount": "20.00",
+                "maximum_amount": "30.00",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Amina Noor")
+        self.assertNotContains(response, "Bilal Khan")
+        self.assertContains(response, "REPORT-1")
+
+    def test_invalid_filter_ranges_are_reported(self):
+        response = self.client.get(
+            self.url,
+            {
+                "start_date": "2025-02-01",
+                "end_date": "2025-01-01",
+                "minimum_amount": "80",
+                "maximum_amount": "10",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "End date must be on or after the start date.")
+        self.assertContains(
+            response, "Maximum amount must be at least the minimum amount."
+        )
+
+    def test_report_requires_staff_access(self):
+        self.client.logout()
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, 302)
